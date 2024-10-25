@@ -1,3 +1,4 @@
+
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import requests
@@ -9,6 +10,15 @@ from PIL import Image, ImageTk  # 使用Pillow加载和调整图片尺寸
 
 # 忽略 SSL 证书警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# 获取资源文件路径
+def resource_path(relative_path):
+    """ Get the resource file path after packaging """
+    try:
+        base_path = sys._MEIPASS  # PyInstaller temporary path
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 # 定义下载功能
 def download_files(user_id, secret_key, url_file, save_directory, progress_bar, total_links):
@@ -48,7 +58,7 @@ def download_files(user_id, secret_key, url_file, save_directory, progress_bar, 
                     downloaded += 1
 
                     # 记录标题、链接、文件名到 Excel 数据
-                    titles.append({"文件名": file_name, "标题": title, "链接": url})
+                    titles.append({"链接": url, "标题": title, "文件名": file_name})
 
             # 更新进度条
             progress_bar['value'] = ((index / total_links) * 100)
@@ -59,7 +69,7 @@ def download_files(user_id, secret_key, url_file, save_directory, progress_bar, 
         df = pd.DataFrame(titles)
         df.to_excel(excel_path, index=False)
 
-        messagebox.showinfo("下载完成", f"下载完成！总共下载了 {downloaded} 个文件。\n标题已导出到 {excel_path}")
+        messagebox.showinfo("下载完成", f"下载完成！总共下载了 {downloaded} 个文件。标题已导出到 {excel_path}")
 
     except Exception as e:
         messagebox.showerror("错误", f"下载时发生错误：{str(e)}")
@@ -69,7 +79,8 @@ def download_file(url, file_path):
     response = requests.get(url, stream=True)
     with open(file_path, 'wb') as file:
         for chunk in response.iter_content(chunk_size=8192):
-            file.write(chunk)
+            if chunk:
+                file.write(chunk)
 
 # 打开网页
 def open_web():
@@ -77,59 +88,35 @@ def open_web():
 
 # 创建 GUI
 def create_gui():
-    def select_file():
-        file_path = filedialog.askopenfilename(title="选择URL文件", filetypes=[("Text Files", "*.txt")])
-        url_file_entry.delete(0, tk.END)
-        url_file_entry.insert(0, file_path)
-
-    def select_directory():
-        folder_path = filedialog.askdirectory(title="选择保存文件夹")
-        save_dir_entry.delete(0, tk.END)
-        save_dir_entry.insert(0, folder_path)
-
-    def start_download():
-        user_id = user_id_entry.get()
-        secret_key = secret_key_entry.get()
-        url_file = url_file_entry.get()
-        save_directory = save_dir_entry.get()
-
-        if not user_id or not secret_key or not url_file or not save_directory:
-            messagebox.showwarning("警告", "请填写所有字段并选择文件和保存目录。")
-        else:
-            with open(url_file, 'r', encoding='utf-8') as file:
-                total_links = len(file.readlines())  # 计算总任务数
-            progress_bar['value'] = 0  # 重置进度条
-            download_files(user_id, secret_key, url_file, save_directory, progress_bar, total_links)
-
-    # 创建窗口
-    global root
+    # 创建根窗口
     root = tk.Tk()
     root.title("哼哼猫123批量下载器")
+    root.geometry("600x800")
 
-    # 修改窗口尺寸为默认的3倍
-    root.geometry("600x800")  # 设置为600x600像素，原来的3倍
+    # 加载Logo图片并调整尺寸
+    logo_image_path = resource_path('logo123.png')
+    try:
+        logo_img = Image.open(logo_image_path)
+        logo_img = logo_img.resize((logo_img.width // 10, logo_img.height // 10), Image.Resampling.LANCZOS)
+        logo_photo = ImageTk.PhotoImage(logo_img)
+        tk.Label(root, image=logo_photo).pack(pady=10)
+    except FileNotFoundError:
+        messagebox.showerror("错误", "找不到 logo123.png 图片文件")
 
-    # 标题
+    # 添加标题
     tk.Label(root, text="哼哼猫123批量下载器", font=("Arial", 20)).pack(pady=10)
 
     # 超链接
-    link = tk.Label(root, text="网址：https://hhm123.com/", fg="blue", cursor="hand2", font=("Arial", 12))
+    link = tk.Label(root, text="链接：https://hhm123.com/", fg="blue", cursor="hand2", font=("Arial", 12))
     link.pack()
     link.bind("<Button-1>", lambda e: open_web())
 
-    # 加载Logo图片并调整尺寸为原尺寸的十分之一
-    logo_image_path = "C:/Users/seven2024/Desktop/text/logo123.png"
-    logo_img = Image.open(logo_image_path)
-    logo_img = logo_img.resize((logo_img.width // 10, logo_img.height // 10), Image.Resampling.LANCZOS)  # 使用Image.Resampling.LANCZOS
-    logo_photo = ImageTk.PhotoImage(logo_img)
-    tk.Label(root, image=logo_photo).pack(pady=10)
-
     # 创建输入框
-    tk.Label(root, text="接口用户ID(userId):").pack(pady=5)
+    tk.Label(root, text="User ID:").pack(pady=5)
     user_id_entry = tk.Entry(root)
     user_id_entry.pack(pady=5, fill=tk.X, padx=20)
 
-    tk.Label(root, text="接口秘钥(secretKey):").pack(pady=5)
+    tk.Label(root, text="Secret Key:").pack(pady=5)
     secret_key_entry = tk.Entry(root)
     secret_key_entry.pack(pady=5, fill=tk.X, padx=20)
 
@@ -137,13 +124,13 @@ def create_gui():
     tk.Label(root, text="选择URL文件:").pack(pady=5)
     url_file_entry = tk.Entry(root)
     url_file_entry.pack(pady=5, fill=tk.X, padx=20)
-    tk.Button(root, text="浏览", command=select_file).pack(pady=5)
+    tk.Button(root, text="浏览", command=lambda: select_file(url_file_entry)).pack(pady=5)
 
     # 选择保存目录
     tk.Label(root, text="选择保存文件夹:").pack(pady=5)
     save_dir_entry = tk.Entry(root)
     save_dir_entry.pack(pady=5, fill=tk.X, padx=20)
-    tk.Button(root, text="浏览", command=select_directory).pack(pady=5)
+    tk.Button(root, text="浏览", command=lambda: select_directory(save_dir_entry)).pack(pady=5)
 
     # 进度条
     tk.Label(root, text="下载进度:").pack(pady=5)
@@ -151,10 +138,33 @@ def create_gui():
     progress_bar.pack(pady=5)
 
     # 下载按钮
-    tk.Button(root, text="开始下载", command=start_download, bg="green", fg="white").pack(pady=20)
+    tk.Button(root, text="开始下载", command=lambda: start_download(
+        user_id_entry.get(), secret_key_entry.get(), url_file_entry.get(), 
+        save_dir_entry.get(), progress_bar), bg="green", fg="white").pack(pady=20)
 
     root.mainloop()
 
-# 运行 GUI
+# 文件选择功能
+def select_file(entry):
+    file_path = filedialog.askopenfilename(title="选择URL文件", filetypes=[("Text Files", "*.txt")])
+    entry.delete(0, tk.END)
+    entry.insert(0, file_path)
+
+# 目录选择功能
+def select_directory(entry):
+    folder_path = filedialog.askdirectory(title="选择保存文件夹")
+    entry.delete(0, tk.END)
+    entry.insert(0, folder_path)
+
+# 开始下载功能
+def start_download(user_id, secret_key, url_file, save_directory, progress_bar):
+    if not user_id or not secret_key or not url_file or not save_directory:
+        messagebox.showwarning("警告", "请填写所有字段并选择文件和保存目录。")
+    else:
+        with open(url_file, 'r', encoding='utf-8') as file:
+            total_links = len(file.readlines())  # 计算总任务数
+        progress_bar['value'] = 0  # 重置进度条
+        download_files(user_id, secret_key, url_file, save_directory, progress_bar, total_links)
+
 if __name__ == "__main__":
     create_gui()
