@@ -8,6 +8,8 @@ import pandas as pd
 import webbrowser
 from PIL import Image, ImageTk  # 使用Pillow加载和调整图片尺寸
 
+root = tk.Tk()
+
 # 忽略 SSL 证书警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -89,8 +91,7 @@ def open_web():
 # 创建 GUI
 def create_gui():
     # 创建根窗口
-    root = tk.Tk()
-    root.title("哼哼猫123批量下载器")
+    root.title("哼哼猫123大批量下载器")
     root.geometry("600x800")
 
     # 加载Logo图片并调整尺寸
@@ -112,11 +113,11 @@ def create_gui():
     link.bind("<Button-1>", lambda e: open_web())
 
     # 创建输入框
-    tk.Label(root, text="User ID:").pack(pady=5)
+    tk.Label(root, text="接口用户ID(userId):").pack(pady=5)
     user_id_entry = tk.Entry(root)
     user_id_entry.pack(pady=5, fill=tk.X, padx=20)
 
-    tk.Label(root, text="Secret Key:").pack(pady=5)
+    tk.Label(root, text="接口秘钥(secretKey):").pack(pady=5)
     secret_key_entry = tk.Entry(root)
     secret_key_entry.pack(pady=5, fill=tk.X, padx=20)
 
@@ -168,3 +169,4 @@ def start_download(user_id, secret_key, url_file, save_directory, progress_bar):
 
 if __name__ == "__main__":
     create_gui()
+
